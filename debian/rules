@@ -1,0 +1,48 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+
+# Build qt5 UI
+export QT_SELECT := qt5
+
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	NJOBS := -j $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+endif
+
+%:
+	dh $@ --with python3
+
+override_dh_auto_configure:
+	dh_auto_configure -- --enable-recollq --enable-xadump
+
+override_dh_auto_install:
+	dh_auto_install
+	cd python/recoll; for python in $$(py3versions -s); do \
+		libdir=/usr/lib/$${DEB_BUILD_MULTIARCH} $$python \
+					./setup.py install \
+					--install-layout=deb \
+					--prefix=/usr \
+					--root=$(CURDIR)/debian/tmp/; \
+	done
+	cd python/pychm; for python in $$(py3versions -s); do \
+		$$python ./setup.py install \
+					--install-layout=deb \
+					--prefix=/usr \
+					--root=$(CURDIR)/debian/tmp/; \
+	done
+	# Remove python2 filter
+	rm -f $(CURDIR)/debian/tmp/usr/share/recoll/filters/hotrecoll.py
+	# Cleanup
+	find $(CURDIR) -type f -name '*.la' -exec rm -f '{}' \;
+	find $(CURDIR) -type f -name '*.pyc' -exec rm -f '{}' \;
+	rm -rf $(CURDIR)/debian/tmp/usr/lib/python*/*/*/__pycache__
+	# Remove legacy format appdata.xml
+	rm -f $(CURDIR)/debian/tmp/usr/share/metainfo/recoll.appdata.xml
