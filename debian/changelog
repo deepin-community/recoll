@@ -1,3 +1,9 @@
+recoll (1.31.0-1deepin1) unstable; urgency=medium
+
+  * No source change upload against python 3.12.
+
+ -- Tianyu Chen <sweetyfish@deepin.org>  Mon, 08 Jul 2024 09:57:12 +0200
+
 recoll (1.31.0-1) unstable; urgency=low
 
   * New upstream release.
